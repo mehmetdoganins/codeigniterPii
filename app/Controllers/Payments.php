@@ -1,24 +1,38 @@
-<?php
-
+<?php 
 namespace App\Controllers;
 
 use CodeIgniter\Controller;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\OrderModel;
-use App\Libraries\PlatformAPIClient;
+use CodeIgniter\HTTP\CURLRequest;
 
 class Payments extends Controller
 {
     protected $orderModel;
-    protected $platformAPIClient;
+    protected $apiBaseUrl = 'https://api.minepi.com/v2/me';
+    protected $apiKey = '0yt8ackwv4axyafddxqu6izwtxqaaqgeq5rqymopwd1lkemv6jis8oynpeyondej';
 
     public function __construct()
     {
         $this->orderModel = new OrderModel();
-        $this->platformAPIClient = new PlatformAPIClient();
+        helper(['url', 'form']);
         header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
         header('Access-Control-Allow-Headers: Content-Type, Authorization');
+    }
+
+    private function sendApiRequest($endpoint, $method = 'GET', $data = [])
+    {
+        $client = \Config\Services::curlrequest([
+            'baseURI' => $this->apiBaseUrl,
+            'timeout' => 20,
+            'headers' => [
+                'Authorization' => 'Key ' . $this->apiKey
+            ]
+        ]);
+
+        $response = $client->request($method, $endpoint, ['json' => $data]);
+        return json_decode($response->getBody(), true);
     }
 
     public function incomplete()
@@ -50,7 +64,7 @@ class Payments extends Controller
             $db->transBegin();
 
             $this->orderModel->update($order['id'], ['txid' => $txid, 'paid' => true]);
-            $this->platformAPIClient->post("/v2/payments/{$paymentId}/complete", ['txid' => $txid]);
+            $this->sendApiRequest("/payments/{$paymentId}/complete", 'POST', ['txid' => $txid]);
 
             if ($db->transStatus() === false) {
                 $db->transRollback();
@@ -74,7 +88,7 @@ class Payments extends Controller
                 return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => 'Ödeme kimliği gerekli.']);
             }
 
-            $currentPayment = $this->platformAPIClient->get("/v2/payments/{$paymentId}");
+            $currentPayment = $this->sendApiRequest("/payments/{$paymentId}");
             if (!$currentPayment) {
                 return $this->response->setStatusCode(ResponseInterface::HTTP_NOT_FOUND)->setJSON(['message' => 'Ödeme bilgisi bulunamadı.']);
             }
@@ -92,7 +106,7 @@ class Payments extends Controller
             $db->transBegin();
 
             $this->orderModel->insert($orderData);
-            $this->platformAPIClient->post("/v2/payments/{$paymentId}/approve");
+            $this->sendApiRequest("/payments/{$paymentId}/approve", 'POST');
 
             if ($db->transStatus() === false) {
                 $db->transRollback();
@@ -126,7 +140,7 @@ class Payments extends Controller
             $db->transBegin();
 
             $this->orderModel->update($order['id'], ['txid' => $txid, 'paid' => true]);
-            $this->platformAPIClient->post("/v2/payments/{$paymentId}/complete", ['txid' => $txid]);
+            $this->sendApiRequest("/payments/{$paymentId}/complete", 'POST', ['txid' => $txid]);
 
             if ($db->transStatus() === false) {
                 $db->transRollback();
