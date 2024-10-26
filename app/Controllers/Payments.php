@@ -9,12 +9,18 @@ use CodeIgniter\HTTP\CURLRequest;
 class Payments extends Controller
 {
     protected $orderModel;
+<<<<<<< HEAD
     protected $apiBaseUrl;
     protected $apiKey;
+=======
+    protected $apiBaseUrl = 'https://api.minepi.com/v2/me';
+    protected $apiKey = '0yt8ackwv4axyafddxqu6izwtxqaaqgeq5rqymopwd1lkemv6jis8oynpeyondej';
+>>>>>>> 195b0c24bbbf9ad89ca75730283c88f363c4b7e5
 
     public function __construct()
     {
         $this->orderModel = new OrderModel();
+<<<<<<< HEAD
         $this->apiBaseUrl = getenv('PI_API_BASE_URL');
         $this->apiKey = getenv('PI_API_KEY');
         helper(['url', 'form']);
@@ -52,6 +58,26 @@ class Payments extends Controller
             $db->transRollback();
             return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Beklenmeyen bir hata oluştu: ' . $e->getMessage()]);
         }
+=======
+        helper(['url', 'form']);
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
+>>>>>>> 195b0c24bbbf9ad89ca75730283c88f363c4b7e5
+    }
+
+    private function sendApiRequest($endpoint, $method = 'GET', $data = [])
+    {
+        $client = \Config\Services::curlrequest([
+            'baseURI' => $this->apiBaseUrl,
+            'timeout' => 20,
+            'headers' => [
+                'Authorization' => 'Key ' . $this->apiKey
+            ]
+        ]);
+
+        $response = $client->request($method, $endpoint, ['json' => $data]);
+        return json_decode($response->getBody(), true);
     }
 
     public function incomplete()
@@ -79,11 +105,28 @@ class Payments extends Controller
                 return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => 'Ödeme kimliği eşleşmiyor.']);
             }
 
+<<<<<<< HEAD
             return $this->handleDatabaseTransaction(function($db) use ($order, $txid, $paymentId) {
                 $this->orderModel->update($order['id'], ['txid' => $txid, 'paid' => true]);
                 $this->sendApiRequest("/payments/{$paymentId}/complete", 'POST', ['txid' => $txid]);
                 return $this->response->setStatusCode(ResponseInterface::HTTP_OK)->setJSON(['message' => "Eksik ödeme işlendi: {$paymentId}"]);
             });
+=======
+            $db = \Config\Database::connect();
+            $db->transBegin();
+
+            $this->orderModel->update($order['id'], ['txid' => $txid, 'paid' => true]);
+            $this->sendApiRequest("/payments/{$paymentId}/complete", 'POST', ['txid' => $txid]);
+
+            if ($db->transStatus() === false) {
+                $db->transRollback();
+                return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Ödeme işlerken hata oluştu.']);
+            } else {
+                $db->transCommit();
+            }
+
+            return $this->response->setStatusCode(ResponseInterface::HTTP_OK)->setJSON(['message' => "Eksik ödeme işlendi: {$paymentId}"]);
+>>>>>>> 195b0c24bbbf9ad89ca75730283c88f363c4b7e5
         } catch (\Exception $e) {
             return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Beklenmeyen bir hata oluştu: ' . $e->getMessage()]);
         }
@@ -112,11 +155,28 @@ class Payments extends Controller
                 'created_at' => date('Y-m-d H:i:s'),
             ];
 
+<<<<<<< HEAD
             return $this->handleDatabaseTransaction(function($db) use ($orderData, $paymentId) {
                 $this->orderModel->insert($orderData);
                 $this->sendApiRequest("/payments/{$paymentId}/approve", 'POST');
                 return $this->response->setStatusCode(ResponseInterface::HTTP_OK)->setJSON(['message' => "Ödeme onaylandı: {$paymentId}"]);
             });
+=======
+            $db = \Config\Database::connect();
+            $db->transBegin();
+
+            $this->orderModel->insert($orderData);
+            $this->sendApiRequest("/payments/{$paymentId}/approve", 'POST');
+
+            if ($db->transStatus() === false) {
+                $db->transRollback();
+                return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Ödeme onayı işlerken hata oluştu.']);
+            } else {
+                $db->transCommit();
+            }
+
+            return $this->response->setStatusCode(ResponseInterface::HTTP_OK)->setJSON(['message' => "Ödeme onaylandı: {$paymentId}"]);
+>>>>>>> 195b0c24bbbf9ad89ca75730283c88f363c4b7e5
         } catch (\Exception $e) {
             return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Beklenmeyen bir hata oluştu: ' . $e->getMessage()]);
         }
@@ -137,11 +197,28 @@ class Payments extends Controller
                 return $this->response->setStatusCode(ResponseInterface::HTTP_NOT_FOUND)->setJSON(['message' => 'Sipariş bulunamadı']);
             }
 
+<<<<<<< HEAD
             return $this->handleDatabaseTransaction(function($db) use ($order, $txid, $paymentId) {
                 $this->orderModel->update($order['id'], ['txid' => $txid, 'paid' => true]);
                 $this->sendApiRequest("/payments/{$paymentId}/complete", 'POST', ['txid' => $txid]);
                 return $this->response->setStatusCode(ResponseInterface::HTTP_OK)->setJSON(['message' => "Ödeme tamamlandı: {$paymentId}"]);
             });
+=======
+            $db = \Config\Database::connect();
+            $db->transBegin();
+
+            $this->orderModel->update($order['id'], ['txid' => $txid, 'paid' => true]);
+            $this->sendApiRequest("/payments/{$paymentId}/complete", 'POST', ['txid' => $txid]);
+
+            if ($db->transStatus() === false) {
+                $db->transRollback();
+                return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Ödeme tamamlarken hata oluştu.']);
+            } else {
+                $db->transCommit();
+            }
+
+            return $this->response->setStatusCode(ResponseInterface::HTTP_OK)->setJSON(['message' => "Ödeme tamamlandı: {$paymentId}"]);
+>>>>>>> 195b0c24bbbf9ad89ca75730283c88f363c4b7e5
         } catch (\Exception $e) {
             return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Beklenmeyen bir hata oluştu: ' . $e->getMessage()]);
         }
